@@ -1,173 +1,195 @@
-const display = document.getElementById("display");
-const history = document.getElementById("history");
-const keys = document.querySelector(".keys");
+const symbols = ["🍎","🚀","🎮","⚡","🐼","🎵","🌟","🧩"];
 
-let current = "0";
-let previous = null;
-let operator = null;
-let waitingForOperand = false;
-let justCalculated = false;
+const board = document.getElementById("board");
+const movesEl = document.getElementById("moves");
+const timerEl = document.getElementById("timer");
+const scoreEl = document.getElementById("score");
+const bestEl = document.getElementById("best");
+const statusEl = document.getElementById("status");
+const newGameBtn = document.getElementById("newGame");
+const modal = document.getElementById("winModal");
+const winText = document.getElementById("winText");
+const playAgainBtn = document.getElementById("playAgain");
 
-function render() {
-  display.textContent = current;
-}
+let firstCard = null;
+let secondCard = null;
+let locked = false;
+let moves = 0;
+let pairs = 0;
+let seconds = 0;
+let timer = null;
+let started = false;
+let score = 1000;
 
-function formatNumber(value) {
-  if (!Number.isFinite(value)) return "Error";
-  const rounded = Number.parseFloat(value.toPrecision(12));
-  return String(rounded);
-}
+let bestScore = Number(localStorage.getItem("memoryBestScore")) || 0;
 
-function calculate(a, b, op) {
-  if (op === "+") return a + b;
-  if (op === "-") return a - b;
-  if (op === "*") return a * b;
-  if (op === "/") return b === 0 ? null : a / b;
-  return b;
-}
-
-function reset() {
-  current = "0";
-  previous = null;
-  operator = null;
-  waitingForOperand = false;
-  justCalculated = false;
-  history.textContent = "";
-  render();
-}
-
-function inputDigit(digit) {
-  if (current === "Error" || waitingForOperand || justCalculated) {
-    current = digit;
-    waitingForOperand = false;
-    justCalculated = false;
-  } else {
-    current = current === "0" ? digit : current + digit;
+function shuffle(array) {
+  const result = [...array];
+  for (let i = result.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [result[i], result[j]] = [result[j], result[i]];
   }
-  render();
+  return result;
 }
 
-function inputDecimal() {
-  if (current === "Error" || waitingForOperand || justCalculated) {
-    current = "0.";
-    waitingForOperand = false;
-    justCalculated = false;
-  } else if (!current.includes(".")) {
-    current += ".";
+function timeText(value) {
+  const min = Math.floor(value / 60).toString().padStart(2, "0");
+  const sec = (value % 60).toString().padStart(2, "0");
+  return min + ":" + sec;
+}
+
+function getScore() {
+  return Math.max(0, 1000 - (seconds * 3) - (Math.max(0, moves - 8) * 20));
+}
+
+function updateStats() {
+  score = getScore();
+  movesEl.textContent = moves;
+  timerEl.textContent = timeText(seconds);
+  scoreEl.textContent = score;
+  bestEl.textContent = bestScore || "—";
+}
+
+function startTimer() {
+  if (timer !== null) return;
+  timer = setInterval(() => {
+    seconds += 1;
+    updateStats();
+  }, 1000);
+}
+
+function stopTimer() {
+  if (timer !== null) {
+    clearInterval(timer);
+    timer = null;
   }
-  render();
 }
 
-function chooseOperator(nextOperator) {
-  if (current === "Error") return reset();
+function makeCard(symbol, index) {
+  const card = document.createElement("button");
+  card.type = "button";
+  card.className = "card";
+  card.dataset.symbol = symbol;
+  card.dataset.index = index;
+  card.setAttribute("aria-label", "Hidden memory card");
 
-  const inputValue = Number(current);
+  card.innerHTML =
+    '<span class="card-inner">' +
+      '<span class="card-face card-back" aria-hidden="true"></span>' +
+      '<span class="card-face card-front" aria-hidden="true">' + symbol + '</span>' +
+    '</span>';
 
-  if (operator && waitingForOperand) {
-    operator = nextOperator;
-    history.textContent = `${formatNumber(previous)} ${operator}`;
+  card.addEventListener("click", () => flipCard(card));
+  return card;
+}
+
+function flipCard(card) {
+  if (
+    locked ||
+    card === firstCard ||
+    card.classList.contains("flipped") ||
+    card.classList.contains("matched")
+  ) return;
+
+  if (!started) {
+    started = true;
+    startTimer();
+  }
+
+  card.classList.add("flipped");
+  card.setAttribute("aria-label", "Card showing " + card.dataset.symbol);
+
+  if (firstCard === null) {
+    firstCard = card;
+    statusEl.textContent = "Choose another card.";
     return;
   }
 
-  if (previous === null) {
-    previous = inputValue;
-  } else if (operator) {
-    const result = calculate(previous, inputValue, operator);
-    if (result === null) {
-      current = "Error";
-      history.textContent = "Cannot divide by zero";
-      previous = null;
-      operator = null;
-      waitingForOperand = true;
-      render();
-      return;
-    }
-    current = formatNumber(result);
-    previous = result;
+  secondCard = card;
+  moves += 1;
+  updateStats();
+  compareCards();
+}
+
+function compareCards() {
+  const match = firstCard.dataset.symbol === secondCard.dataset.symbol;
+
+  if (match) {
+    firstCard.classList.add("matched");
+    secondCard.classList.add("matched");
+    firstCard.disabled = true;
+    secondCard.disabled = true;
+    pairs += 1;
+
+    statusEl.textContent = "Match found! " + pairs + " of " + symbols.length + " pairs completed.";
+    resetTurn();
+
+    if (pairs === symbols.length) finishGame();
+    return;
   }
 
-  operator = nextOperator;
-  waitingForOperand = true;
-  justCalculated = false;
-  history.textContent = `${formatNumber(previous)} ${nextOperator}`;
-  render();
+  locked = true;
+  statusEl.textContent = "Not a match. Try again.";
+
+  const cardA = firstCard;
+  const cardB = secondCard;
+
+  setTimeout(() => {
+    cardA.classList.remove("flipped");
+    cardB.classList.remove("flipped");
+    cardA.setAttribute("aria-label", "Hidden memory card");
+    cardB.setAttribute("aria-label", "Hidden memory card");
+    resetTurn();
+  }, 700);
 }
 
-function equals() {
-  if (operator === null || previous === null || current === "Error") return;
+function resetTurn() {
+  firstCard = null;
+  secondCard = null;
+  locked = false;
+}
 
-  const a = previous;
-  const b = Number(current);
-  const result = calculate(a, b, operator);
+function finishGame() {
+  stopTimer();
+  score = getScore();
 
-  if (result === null) {
-    current = "Error";
-    history.textContent = "Cannot divide by zero";
-  } else {
-    history.textContent = `${formatNumber(a)} ${operator} ${formatNumber(b)} =`;
-    current = formatNumber(result);
+  if (score > bestScore) {
+    bestScore = score;
+    localStorage.setItem("memoryBestScore", String(bestScore));
   }
 
-  previous = null;
-  operator = null;
-  waitingForOperand = false;
-  justCalculated = true;
-  render();
+  updateStats();
+  statusEl.textContent = "All pairs matched!";
+  winText.textContent =
+    "You finished in " + moves + " moves, " + timeText(seconds) +
+    ", with a score of " + score + ".";
+  modal.classList.remove("hidden");
 }
 
-function backspace() {
-  if (waitingForOperand || justCalculated || current === "Error") return reset();
-  current = current.length > 1 ? current.slice(0, -1) : "0";
-  if (current === "-") current = "0";
-  render();
+function newGame() {
+  stopTimer();
+
+  firstCard = null;
+  secondCard = null;
+  locked = false;
+  moves = 0;
+  pairs = 0;
+  seconds = 0;
+  started = false;
+  score = 1000;
+
+  modal.classList.add("hidden");
+  board.replaceChildren();
+
+  shuffle([...symbols, ...symbols]).forEach((symbol, index) => {
+    board.appendChild(makeCard(symbol, index));
+  });
+
+  statusEl.textContent = "Find all 8 matching pairs.";
+  updateStats();
 }
 
-function percent() {
-  if (current === "Error") return reset();
-  current = formatNumber(Number(current) / 100);
-  render();
-}
+newGameBtn.addEventListener("click", newGame);
+playAgainBtn.addEventListener("click", newGame);
 
-function handleAction(action) {
-  if (action === "clear") reset();
-  else if (action === "backspace") backspace();
-  else if (action === "decimal") inputDecimal();
-  else if (action === "percent") percent();
-  else if (action === "equals") equals();
-}
-
-keys.addEventListener("click", (event) => {
-  const button = event.target.closest("button");
-  if (!button) return;
-
-  if (button.dataset.value !== undefined) {
-    const value = button.dataset.value;
-    if (/^[0-9]$/.test(value)) inputDigit(value);
-    else chooseOperator(value);
-  } else {
-    handleAction(button.dataset.action);
-  }
-});
-
-document.addEventListener("keydown", (event) => {
-  const key = event.key;
-
-  if (/^[0-9]$/.test(key)) {
-    inputDigit(key);
-  } else if (key === ".") {
-    inputDecimal();
-  } else if (["+", "-", "*", "/"].includes(key)) {
-    chooseOperator(key);
-  } else if (key === "Enter" || key === "=") {
-    event.preventDefault();
-    equals();
-  } else if (key === "Backspace") {
-    backspace();
-  } else if (key === "%" ) {
-    percent();
-  } else if (key === "Escape" || key.toLowerCase() === "c") {
-    reset();
-  }
-});
-
-reset();
+newGame();
