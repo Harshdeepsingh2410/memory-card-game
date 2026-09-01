@@ -1,38 +1,32 @@
-# 🧠 Memory Match
+# 🧮 Calculator Web Application
 
-A responsive **Memory Card Matching Game** built with vanilla HTML, CSS and JavaScript.
-
-The player flips cards two at a time and tries to find all eight matching pairs using as few moves and as little time as possible.
+A responsive calculator built using **HTML5, CSS3 and vanilla JavaScript**.
 
 ## Features
 
-- 16 cards with 8 matching pairs
-- Randomized card shuffle on every new game
-- Animated card flipping
-- Automatic match detection
-- Move counter
-- Live timer
-- Score calculation
-- Session best-score tracking
-- Win/completion modal
-- Restart / New Game functionality
+- Addition, subtraction, multiplication and division
+- Decimal calculations
+- Percentage conversion
+- Clear and backspace controls
+- Keyboard support
+- Calculation history display
+- Divide-by-zero handling
 - Responsive layout for desktop and mobile
-- Keyboard-accessible buttons
-- Reduced-motion support
+- Accessible button labels and focus states
+- No external libraries or dependencies
 
 ## Tech Stack
 
 - HTML5
 - CSS3
 - JavaScript (ES6+)
-- CSS Grid
 - DOM Manipulation
-- Browser Session Storage
+- Event Handling
 
 ## Project Structure
 
 ```text
-memory-card-game/
+calculator-web-project/
 ├── index.html
 ├── style.css
 ├── script.js
@@ -41,60 +35,35 @@ memory-card-game/
 
 ## How to Run
 
-### Option 1 — Open directly
+No installation is required.
 
-Download or clone the repository and open `index.html` in a modern browser.
+1. Download or clone the repository.
+2. Open `index.html` in a modern web browser.
 
-### Option 2 — VS Code
-
-1. Open the project folder in VS Code.
-2. Open `index.html`.
-3. Run it with a local development extension such as Live Server, or open the file directly in your browser.
-
-No package installation is required.
-
-## How the Game Works
-
-1. The game creates two copies of eight symbols.
-2. The deck is shuffled using the Fisher-Yates shuffle algorithm.
-3. When a player selects a card, JavaScript reveals it.
-4. A second selection triggers a comparison of the two card values.
-5. Matching cards remain visible.
-6. Non-matching cards are flipped back after a short delay.
-7. The game ends after all eight pairs are matched.
-
-## Scoring
-
-The initial score is 1000.
-
-The score decreases based on elapsed time and unnecessary moves. The best score is retained for the current browser session.
+You can also open the folder in VS Code and use Live Server.
 
 ## GitHub
 
 ```bash
 git init
 git add .
-git commit -m "Add memory card matching game"
+git commit -m "Add calculator web application"
 git branch -M main
 git remote add origin YOUR_GITHUB_REPOSITORY_URL
 git push -u origin main
 ```
 
-Replace `YOUR_GITHUB_REPOSITORY_URL` with your own GitHub repository URL.
-
 ## CV Description
 
-**Memory Card Matching Game | HTML, CSS, JavaScript | GitHub**
+**Calculator Web Application | HTML, CSS, JavaScript | GitHub**
 
-- Developed an interactive memory card game with randomized card generation, pair-matching logic and game-state management.
-- Implemented card-flip animations, move tracking, timer functionality, score calculation and restart controls using JavaScript.
-- Designed a responsive and accessible user interface using HTML5, CSS3 and JavaScript DOM manipulation.
+- Developed a responsive calculator web application supporting arithmetic operations, decimal calculations, percentage conversion, and error handling.
+- Implemented interactive controls, keyboard input, calculation history, and dynamic display updates using JavaScript DOM manipulation and event handling.
+- Designed a clean, responsive user interface using HTML5 and CSS3.
 
 ## Future Improvements
 
-- Difficulty levels
-- Sound effects
-- Multiple card themes
-- Persistent high scores using localStorage
-- Dark/light theme switcher
-- Online leaderboard
+- Scientific calculator mode
+- Calculation history panel
+- Theme switcher
+- Memory functions

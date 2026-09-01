@@ -1,208 +1,173 @@
-const symbols = ["🍎", "🚀", "🎮", "⚡", "🐼", "🎵", "🌟", "🧩"];
+const display = document.getElementById("display");
+const history = document.getElementById("history");
+const keys = document.querySelector(".keys");
 
-const board = document.getElementById("gameBoard");
-const movesEl = document.getElementById("moves");
-const timerEl = document.getElementById("timer");
-const scoreEl = document.getElementById("score");
-const bestScoreEl = document.getElementById("bestScore");
-const statusEl = document.getElementById("status");
-const newGameBtn = document.getElementById("newGameBtn");
-const winModal = document.getElementById("winModal");
-const winMessage = document.getElementById("winMessage");
-const playAgainBtn = document.getElementById("playAgainBtn");
+let current = "0";
+let previous = null;
+let operator = null;
+let waitingForOperand = false;
+let justCalculated = false;
 
-let firstCard = null;
-let secondCard = null;
-let lockBoard = false;
-let moves = 0;
-let matchedPairs = 0;
-let seconds = 0;
-let timerId = null;
-let gameStarted = false;
-let score = 1000;
-let bestScore = Number(sessionStorage.getItem("memoryBestScore")) || 0;
+function render() {
+  display.textContent = current;
+}
 
-bestScoreEl.textContent = bestScore || "—";
+function formatNumber(value) {
+  if (!Number.isFinite(value)) return "Error";
+  const rounded = Number.parseFloat(value.toPrecision(12));
+  return String(rounded);
+}
 
-function shuffle(array) {
-  const copy = [...array];
+function calculate(a, b, op) {
+  if (op === "+") return a + b;
+  if (op === "-") return a - b;
+  if (op === "*") return a * b;
+  if (op === "/") return b === 0 ? null : a / b;
+  return b;
+}
 
-  for (let i = copy.length - 1; i > 0; i -= 1) {
-    const randomIndex = Math.floor(Math.random() * (i + 1));
-    [copy[i], copy[randomIndex]] = [copy[randomIndex], copy[i]];
+function reset() {
+  current = "0";
+  previous = null;
+  operator = null;
+  waitingForOperand = false;
+  justCalculated = false;
+  history.textContent = "";
+  render();
+}
+
+function inputDigit(digit) {
+  if (current === "Error" || waitingForOperand || justCalculated) {
+    current = digit;
+    waitingForOperand = false;
+    justCalculated = false;
+  } else {
+    current = current === "0" ? digit : current + digit;
   }
-
-  return copy;
+  render();
 }
 
-function formatTime(totalSeconds) {
-  const minutes = Math.floor(totalSeconds / 60).toString().padStart(2, "0");
-  const secondsPart = (totalSeconds % 60).toString().padStart(2, "0");
-  return `${minutes}:${secondsPart}`;
-}
-
-function updateStats() {
-  movesEl.textContent = moves;
-  timerEl.textContent = formatTime(seconds);
-  scoreEl.textContent = Math.max(0, score);
-  bestScoreEl.textContent = bestScore || "—";
-}
-
-function calculateScore() {
-  const timePenalty = seconds * 3;
-  const movePenalty = Math.max(0, moves - 8) * 20;
-  return Math.max(0, 1000 - timePenalty - movePenalty);
-}
-
-function startTimer() {
-  if (timerId !== null) return;
-
-  timerId = setInterval(() => {
-    seconds += 1;
-    score = calculateScore();
-    updateStats();
-  }, 1000);
-}
-
-function stopTimer() {
-  if (timerId !== null) {
-    clearInterval(timerId);
-    timerId = null;
+function inputDecimal() {
+  if (current === "Error" || waitingForOperand || justCalculated) {
+    current = "0.";
+    waitingForOperand = false;
+    justCalculated = false;
+  } else if (!current.includes(".")) {
+    current += ".";
   }
+  render();
 }
 
-function createCard(symbol, index) {
-  const card = document.createElement("button");
-  card.type = "button";
-  card.className = "card";
-  card.dataset.symbol = symbol;
-  card.dataset.index = index;
-  card.setAttribute("aria-label", "Hidden memory card");
+function chooseOperator(nextOperator) {
+  if (current === "Error") return reset();
 
-  card.innerHTML = `
-    <span class="card-inner">
-      <span class="card-face card-back" aria-hidden="true"></span>
-      <span class="card-face card-front" aria-hidden="true">${symbol}</span>
-    </span>
-  `;
+  const inputValue = Number(current);
 
-  card.addEventListener("click", () => handleCardClick(card));
-  return card;
-}
-
-function handleCardClick(card) {
-  if (
-    lockBoard ||
-    card === firstCard ||
-    card.classList.contains("matched") ||
-    card.classList.contains("flipped")
-  ) {
+  if (operator && waitingForOperand) {
+    operator = nextOperator;
+    history.textContent = `${formatNumber(previous)} ${operator}`;
     return;
   }
 
-  if (!gameStarted) {
-    gameStarted = true;
-    startTimer();
-    statusEl.textContent = "Good luck! Find the matching pairs.";
-  }
-
-  card.classList.add("flipped");
-  card.setAttribute("aria-label", `Card showing ${card.dataset.symbol}`);
-
-  if (!firstCard) {
-    firstCard = card;
-    return;
-  }
-
-  secondCard = card;
-  moves += 1;
-  score = calculateScore();
-  updateStats();
-  checkForMatch();
-}
-
-function checkForMatch() {
-  const isMatch = firstCard.dataset.symbol === secondCard.dataset.symbol;
-
-  if (isMatch) {
-    firstCard.classList.add("matched");
-    secondCard.classList.add("matched");
-    firstCard.disabled = true;
-    secondCard.disabled = true;
-
-    matchedPairs += 1;
-    statusEl.textContent = `Match found! ${matchedPairs} of 8 pairs completed.`;
-    resetTurn();
-
-    if (matchedPairs === symbols.length) {
-      finishGame();
+  if (previous === null) {
+    previous = inputValue;
+  } else if (operator) {
+    const result = calculate(previous, inputValue, operator);
+    if (result === null) {
+      current = "Error";
+      history.textContent = "Cannot divide by zero";
+      previous = null;
+      operator = null;
+      waitingForOperand = true;
+      render();
+      return;
     }
-
-    return;
+    current = formatNumber(result);
+    previous = result;
   }
 
-  lockBoard = true;
-  statusEl.textContent = "Not a match. Try again.";
-
-  setTimeout(() => {
-    firstCard.classList.remove("flipped");
-    secondCard.classList.remove("flipped");
-    firstCard.setAttribute("aria-label", "Hidden memory card");
-    secondCard.setAttribute("aria-label", "Hidden memory card");
-    resetTurn();
-  }, 750);
+  operator = nextOperator;
+  waitingForOperand = true;
+  justCalculated = false;
+  history.textContent = `${formatNumber(previous)} ${nextOperator}`;
+  render();
 }
 
-function resetTurn() {
-  [firstCard, secondCard] = [null, null];
-  lockBoard = false;
-}
+function equals() {
+  if (operator === null || previous === null || current === "Error") return;
 
-function finishGame() {
-  stopTimer();
-  score = calculateScore();
+  const a = previous;
+  const b = Number(current);
+  const result = calculate(a, b, operator);
 
-  if (score > bestScore) {
-    bestScore = score;
-    sessionStorage.setItem("memoryBestScore", String(bestScore));
+  if (result === null) {
+    current = "Error";
+    history.textContent = "Cannot divide by zero";
+  } else {
+    history.textContent = `${formatNumber(a)} ${operator} ${formatNumber(b)} =`;
+    current = formatNumber(result);
   }
 
-  updateStats();
-  statusEl.textContent = "All pairs matched!";
-
-  winMessage.textContent =
-    `You finished in ${moves} moves and ${formatTime(seconds)} with a score of ${score}.`;
-
-  winModal.classList.remove("hidden");
-  playAgainBtn.focus();
+  previous = null;
+  operator = null;
+  waitingForOperand = false;
+  justCalculated = true;
+  render();
 }
 
-function newGame() {
-  stopTimer();
-
-  firstCard = null;
-  secondCard = null;
-  lockBoard = false;
-  moves = 0;
-  matchedPairs = 0;
-  seconds = 0;
-  score = 1000;
-  gameStarted = false;
-
-  winModal.classList.add("hidden");
-  board.replaceChildren();
-
-  const deck = shuffle([...symbols, ...symbols]);
-
-  deck.forEach((symbol, index) => {
-    board.appendChild(createCard(symbol, index));
-  });
-
-  statusEl.textContent = "Find all 8 matching pairs.";
-  updateStats();
+function backspace() {
+  if (waitingForOperand || justCalculated || current === "Error") return reset();
+  current = current.length > 1 ? current.slice(0, -1) : "0";
+  if (current === "-") current = "0";
+  render();
 }
 
-newGameBtn.addEventListener("click", newGame);
-playAgainBtn.addEventListener("click", newGame);
+function percent() {
+  if (current === "Error") return reset();
+  current = formatNumber(Number(current) / 100);
+  render();
+}
 
-newGame();
+function handleAction(action) {
+  if (action === "clear") reset();
+  else if (action === "backspace") backspace();
+  else if (action === "decimal") inputDecimal();
+  else if (action === "percent") percent();
+  else if (action === "equals") equals();
+}
+
+keys.addEventListener("click", (event) => {
+  const button = event.target.closest("button");
+  if (!button) return;
+
+  if (button.dataset.value !== undefined) {
+    const value = button.dataset.value;
+    if (/^[0-9]$/.test(value)) inputDigit(value);
+    else chooseOperator(value);
+  } else {
+    handleAction(button.dataset.action);
+  }
+});
+
+document.addEventListener("keydown", (event) => {
+  const key = event.key;
+
+  if (/^[0-9]$/.test(key)) {
+    inputDigit(key);
+  } else if (key === ".") {
+    inputDecimal();
+  } else if (["+", "-", "*", "/"].includes(key)) {
+    chooseOperator(key);
+  } else if (key === "Enter" || key === "=") {
+    event.preventDefault();
+    equals();
+  } else if (key === "Backspace") {
+    backspace();
+  } else if (key === "%" ) {
+    percent();
+  } else if (key === "Escape" || key.toLowerCase() === "c") {
+    reset();
+  }
+});
+
+reset();

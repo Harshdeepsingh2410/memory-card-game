@@ -3,56 +3,55 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="A responsive Memory Card Matching Game built with HTML, CSS and JavaScript.">
-  <title>Memory Match | Card Matching Game</title>
+  <meta name="description" content="A responsive calculator built with HTML, CSS and JavaScript.">
+  <title>Calculator | JavaScript Project</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <main class="game-shell">
-    <header class="hero">
-      <p class="eyebrow">JAVASCRIPT GAME PROJECT</p>
-      <h1>Memory Match</h1>
-      <p class="subtitle">Flip the cards, find every matching pair, and beat your best score.</p>
-    </header>
+  <main class="app">
+    <section class="calculator" aria-label="Calculator">
+      <header class="calculator-header">
+        <div>
+          <p class="eyebrow">JAVASCRIPT PROJECT</p>
+          <h1>Calculator</h1>
+        </div>
+        <button id="clear" class="clear-btn" type="button" aria-label="Clear calculator">AC</button>
+      </header>
 
-    <section class="stats" aria-label="Game statistics">
-      <div class="stat-card">
-        <span class="stat-label">Moves</span>
-        <strong id="moves">0</strong>
+      <div class="display" aria-live="polite">
+        <div id="history" class="history"></div>
+        <div id="display">0</div>
       </div>
-      <div class="stat-card">
-        <span class="stat-label">Time</span>
-        <strong id="timer">00:00</strong>
+
+      <div class="keys">
+        <button type="button" class="key utility" data-action="clear">AC</button>
+        <button type="button" class="key utility" data-action="backspace">⌫</button>
+        <button type="button" class="key utility" data-action="percent">%</button>
+        <button type="button" class="key operator" data-value="/">÷</button>
+
+        <button type="button" class="key" data-value="7">7</button>
+        <button type="button" class="key" data-value="8">8</button>
+        <button type="button" class="key" data-value="9">9</button>
+        <button type="button" class="key operator" data-value="*">×</button>
+
+        <button type="button" class="key" data-value="4">4</button>
+        <button type="button" class="key" data-value="5">5</button>
+        <button type="button" class="key" data-value="6">6</button>
+        <button type="button" class="key operator" data-value="-">−</button>
+
+        <button type="button" class="key" data-value="1">1</button>
+        <button type="button" class="key" data-value="2">2</button>
+        <button type="button" class="key" data-value="3">3</button>
+        <button type="button" class="key operator" data-value="+">+</button>
+
+        <button type="button" class="key zero" data-value="0">0</button>
+        <button type="button" class="key" data-action="decimal">.</button>
+        <button type="button" class="key equals" data-action="equals">=</button>
       </div>
-      <div class="stat-card">
-        <span class="stat-label">Score</span>
-        <strong id="score">1000</strong>
-      </div>
-      <div class="stat-card">
-        <span class="stat-label">Best</span>
-        <strong id="bestScore">—</strong>
-      </div>
+
+      <p class="hint">Keyboard supported: 0–9, +, −, ×, ÷, %, Enter, Backspace and Escape</p>
     </section>
-
-    <div class="controls">
-      <button id="newGameBtn" class="primary-btn" type="button">New Game</button>
-    </div>
-
-    <section id="gameBoard" class="game-board" aria-label="Memory card board"></section>
-
-    <p id="status" class="status" aria-live="polite">Find all 8 matching pairs.</p>
   </main>
-
-  <div id="winModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="winTitle">
-    <div class="modal-card">
-      <div class="trophy" aria-hidden="true">🏆</div>
-      <p class="eyebrow">GAME COMPLETE</p>
-      <h2 id="winTitle">You matched them all!</h2>
-      <p id="winMessage"></p>
-      <button id="playAgainBtn" class="primary-btn" type="button">Play Again</button>
-    </div>
-  </div>
-
   <script src="script.js"></script>
 </body>
 </html>
